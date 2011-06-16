@@ -60,11 +60,11 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="FlickrColorFeedback/lib/base/core"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="extlib/json_simple-1.1-all/lib/json_simple-1.1.jar"/>
-	<classpathentry kind="lib" path="extlib/flickrapi-1.2/flickrapi-1.2.jar"/>
-	<classpathentry kind="lib" path="extlib/commons-lang-2.6/commons-lang-2.6.jar"/>
-	<classpathentry kind="lib" path="extlib/commons-io-2.0.1/commons-io-2.0.1.jar"/>
-	<classpathentry kind="lib" path="extlib/commons-collections-3.2.1/commons-collections-3.2.1.jar"/>
+	<classpathentry kind="lib" path="extlib/commons-collections-3.2.1.jar"/>
+	<classpathentry kind="lib" path="extlib/commons-io-2.0.1.jar"/>
+	<classpathentry kind="lib" path="extlib/commons-lang-2.6.jar"/>
+	<classpathentry kind="lib" path="extlib/flickrapi-1.2.jar"/>
+	<classpathentry kind="lib" path="extlib/json_simple-1.1.jar"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
