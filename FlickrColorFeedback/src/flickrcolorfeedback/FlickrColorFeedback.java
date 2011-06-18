@@ -169,6 +169,14 @@ public class FlickrColorFeedback extends PApplet {
         }
     }
 
+    private final class HueComparator implements Comparator<FlickrColorFeedback.ColorBucket> {
+        @Override
+        public int compare(ColorBucket o1, ColorBucket o2) {
+            float hue1 = hue(o1.color);
+            float hue2 = hue(o2.color);
+            return hue1 < hue2 ? -1 : hue1 > hue2 ? 1 : 0;
+        }
+    }
     class ColorCollector {
 
         public ColorCollector(final int resolution) {
@@ -286,15 +294,7 @@ public class FlickrColorFeedback extends PApplet {
             }
 
             if (orderByHue) {
-                Comparator<ColorBucket> hueComparator = new Comparator<FlickrColorFeedback.ColorBucket>() {
-
-                    @Override
-                    public int compare(ColorBucket o1, ColorBucket o2) {
-                        float hue1 = hue(o1.color);
-                        float hue2 = hue(o2.color);
-                        return hue1 < hue2 ? -1 : hue1 > hue2 ? 1 : 0;
-                    }
-                };
+                Comparator<ColorBucket> hueComparator = new HueComparator();
 
                 Collections.sort(dominantColours, hueComparator);
             }
@@ -627,6 +627,7 @@ public class FlickrColorFeedback extends PApplet {
 
             currentImage = createImage(640, 480, RGB);
         }
+        updateImageLocation();
 
         hint(ENABLE_NATIVE_FONTS);
         font = createFont("Arial", 20, false);
@@ -676,17 +677,17 @@ public class FlickrColorFeedback extends PApplet {
             for (int i = 0; i < NUM_COLORS_FROM_VIDEO; i++) {
                 searchColours.add(coloursFromVideo.get(i));
             }
+            
+            HueComparator hueComparator = new HueComparator();
+            Collections.sort(searchColours, hueComparator);
         }
     }
 
+    
     public void draw() {
 
         background(0.f);
 
-        float left = round((width - currentImage.width) * (0.25f + random(0.5f)));
-        float top = round((height - currentImage.height) * (0.25f + random(0.5f)));
-        float right = left + currentImage.width;
-        float bottom = top + currentImage.height;
 
         // draw dominant colors
 
@@ -698,42 +699,42 @@ public class FlickrColorFeedback extends PApplet {
         if (coloursToDisplay != null && coloursToDisplay.size() == 4) {
 
             fill(coloursToDisplay.get(0).color);
-            rect(left, 0, currentImage.width, top);
+            rect(imgLeft, 0, currentImage.width, imgTop);
 
             fill(coloursToDisplay.get(1).color);
-            rect(right, top, width - right, currentImage.height);
+            rect(imgRight, imgTop, width - imgRight, currentImage.height);
 
             fill(coloursToDisplay.get(2).color);
-            rect(left, bottom, currentImage.width, height - bottom);
+            rect(imgLeft, imgBottom, currentImage.width, height - imgBottom);
 
             fill(coloursToDisplay.get(3).color);
-            rect(0, top, left, currentImage.height);
+            rect(0, imgTop, imgLeft, currentImage.height);
 
         } else if (coloursToDisplay != null && coloursToDisplay.size() == 8) {
 
             fill(coloursToDisplay.get(0).color);
-            rect(0, 0, left, top);
+            rect(0, 0, imgLeft, imgTop);
 
             fill(coloursToDisplay.get(1).color);
-            rect(left, 0, currentImage.width, top);
+            rect(imgLeft, 0, currentImage.width, imgTop);
 
             fill(coloursToDisplay.get(2).color);
-            rect(right, 0, width - right, top);
+            rect(imgRight, 0, width - imgRight, imgTop);
 
             fill(coloursToDisplay.get(3).color);
-            rect(right, top, width - right, currentImage.height);
+            rect(imgRight, imgTop, width - imgRight, currentImage.height);
 
             fill(coloursToDisplay.get(4).color);
-            rect(right, bottom, width - right, height - bottom);
+            rect(imgRight, imgBottom, width - imgRight, height - imgBottom);
 
             fill(coloursToDisplay.get(5).color);
-            rect(left, bottom, currentImage.width, height - bottom);
+            rect(imgLeft, imgBottom, currentImage.width, height - imgBottom);
 
             fill(coloursToDisplay.get(6).color);
-            rect(0, bottom, left, height - bottom);
+            rect(0, imgBottom, imgLeft, height - imgBottom);
 
             fill(coloursToDisplay.get(7).color);
-            rect(0, top, left, currentImage.height);
+            rect(0, imgTop, imgLeft, currentImage.height);
 
         } else if (coloursToDisplay != null) {
 
@@ -749,7 +750,7 @@ public class FlickrColorFeedback extends PApplet {
         if (currentImage != null) {
             // draw image
             imageMode(CORNERS);
-            image(currentImage, left, top, right, bottom);
+            image(currentImage, imgLeft, imgTop, imgRight, imgBottom);
         }
 
         // draw optional border
@@ -757,10 +758,10 @@ public class FlickrColorFeedback extends PApplet {
         if (border > 0) {
             fill(color(0.f));
             rectMode(CORNERS);
-            rect(left, top, right, top + border);
-            rect(left, top, left + border, bottom);
-            rect(left, bottom - border, right, bottom);
-            rect(right - border, top, right, bottom);
+            rect(imgLeft, imgTop, imgRight, imgTop + border);
+            rect(imgLeft, imgTop, imgLeft + border, imgBottom);
+            rect(imgLeft, imgBottom - border, imgRight, imgBottom);
+            rect(imgRight - border, imgTop, imgRight, imgBottom);
         }
 
         if (currentPhoto != null && currentPhoto.hasMetadata()) {
@@ -772,11 +773,20 @@ public class FlickrColorFeedback extends PApplet {
             if (currentPhoto != null) {
                 loadNextImage(currentPhoto.getFile().getName());
             }
+
+            updateImageLocation();
         }
 
         if (exportMovie) {
             saveFrame("screen-" + nf(frameCount, 4) + ".png");
         }
+    }
+
+    private void updateImageLocation() {
+        imgLeft = round((width - currentImage.width) * (0.25f + random(0.5f)));
+        imgTop = round((height - currentImage.height) * (0.25f + random(0.5f)));
+        imgRight = imgLeft + currentImage.width;
+        imgBottom = imgTop + currentImage.height;
     }
 
     private void displayMetadata(float photoLeft, float photoTop, float photoRight, float photoBottom) {
@@ -907,4 +917,12 @@ public class FlickrColorFeedback extends PApplet {
     String myDisconnectPattern = "/server/disconnect";
 
     private List<ColorBucket> searchColours;
+
+    private float imgLeft;
+
+    private float imgTop;
+
+    private float imgRight;
+
+    private float imgBottom;
 }
