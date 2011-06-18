@@ -65,6 +65,7 @@
 	<classpathentry kind="lib" path="extlib/commons-lang-2.6.jar"/>
 	<classpathentry kind="lib" path="extlib/flickrapi-1.2.jar"/>
 	<classpathentry kind="lib" path="extlib/json_simple-1.1.jar"/>
+	<classpathentry kind="lib" path="lib/user/oscP5/oscP5.jar"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
