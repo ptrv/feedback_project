@@ -577,18 +577,13 @@ public class FlickrColorFeedback extends PApplet {
         FlickrPhotoInfo newPhotoInfo;
     }
 
-    private final static int NUM_COLORS_FROM_VIDEO = 3;
-
     public void setup() {
 
         size(1280, 720, P2D);
 
         System.out.println("FlickColorFeedback.setup() was called.");
         oscp5 = new OscP5(this, myListeningPort);
-        coloursFromVideo = new ArrayList<ColorBucket>();
-        for (int i = 0; i < NUM_COLORS_FROM_VIDEO; i++) {
-            coloursFromVideo.add(new ColorBucket(0));
-        }
+        coloursFromOsc = new ArrayList<ColorBucket>();
 
         imageDataDir = new File(dataPath("images"));
         cacheDataDir = new File(dataPath("cache"));
@@ -671,11 +666,11 @@ public class FlickrColorFeedback extends PApplet {
 
         synchronized (this) {
             searchColours = new ArrayList<ColorBucket>();
-            for (int i = 0; i < dominantColors.size() - NUM_COLORS_FROM_VIDEO; i++) {
+            for (int i = 0; i < dominantColors.size() - coloursFromOsc.size(); i++) {
                 searchColours.add(dominantColors.get(i));
             }
-            for (int i = 0; i < NUM_COLORS_FROM_VIDEO; i++) {
-                searchColours.add(coloursFromVideo.get(i));
+            for (int i = 0; i < coloursFromOsc.size(); i++) {
+                searchColours.add(coloursFromOsc.get(i));
             }
             
             HueComparator hueComparator = new HueComparator();
@@ -842,13 +837,23 @@ public class FlickrColorFeedback extends PApplet {
         else {
             int colorIndex = NumberUtils.toInt(StringUtils.substringAfter(theOscMessage.addrPattern(), "/color"));
 
-            float red = theOscMessage.get(0).floatValue();
-            float green = theOscMessage.get(1).floatValue();
-            float blue = theOscMessage.get(2).floatValue();
-
-            int color = color(red, green, blue);
-
-            coloursFromVideo.set(colorIndex, new ColorBucket(color));
+            // make sure not to receive more colors than used in the uery
+            if (colorIndex < NUM_COLORS_IN_QUERY)
+            {
+                float red = theOscMessage.get(0).floatValue();
+                float green = theOscMessage.get(1).floatValue();
+                float blue = theOscMessage.get(2).floatValue();
+    
+                int color = color(red, green, blue);
+    
+                // make sure there are enough color buckets available to store the incoming color
+                while(coloursFromOsc.size() <= colorIndex)
+                {
+                    coloursFromOsc.add(new ColorBucket(0));
+                }
+                
+                coloursFromOsc.set(colorIndex, new ColorBucket(color));
+            }
         }
 
         updateSearchColors();
@@ -901,7 +906,7 @@ public class FlickrColorFeedback extends PApplet {
     private File imageDataDir;
     private File cacheDataDir;
 
-    private List<ColorBucket> coloursFromVideo;
+    private List<ColorBucket> coloursFromOsc;
 
     private OscP5 oscp5;
     NetAddressList myNetAddressList = new NetAddressList();
