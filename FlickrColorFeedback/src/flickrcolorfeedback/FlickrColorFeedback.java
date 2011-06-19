@@ -177,6 +177,7 @@ public class FlickrColorFeedback extends PApplet {
             return hue1 < hue2 ? -1 : hue1 > hue2 ? 1 : 0;
         }
     }
+
     class ColorCollector {
 
         public ColorCollector(final int resolution) {
@@ -393,7 +394,7 @@ public class FlickrColorFeedback extends PApplet {
             } catch (IOException e) {
                 e.printStackTrace();
                 return idList;
-            } 
+            }
         }
 
         private String baseUrl = "http://labs.ideeinc.com/coloursearch/services/rest/?method=color.search&quantity=20&page=0&imageset=flickr&colors=";
@@ -583,6 +584,9 @@ public class FlickrColorFeedback extends PApplet {
 
         System.out.println("FlickColorFeedback.setup() was called.");
         oscp5 = new OscP5(this, myListeningPort);
+
+        peerAddress = new NetAddress("127.0.0.1", peerListeningPort);
+
         coloursFromOsc = new ArrayList<ColorBucket>();
 
         imageDataDir = new File(dataPath("images"));
@@ -672,17 +676,15 @@ public class FlickrColorFeedback extends PApplet {
             for (int i = 0; i < coloursFromOsc.size(); i++) {
                 searchColours.add(coloursFromOsc.get(i));
             }
-            
+
             HueComparator hueComparator = new HueComparator();
             Collections.sort(searchColours, hueComparator);
         }
     }
 
-    
     public void draw() {
 
         background(0.f);
-
 
         // draw dominant colors
 
@@ -767,6 +769,7 @@ public class FlickrColorFeedback extends PApplet {
             currentPhoto = imageReplacingThread.getNewPhotoInfo();
             if (currentPhoto != null) {
                 loadNextImage(currentPhoto.getFile().getName());
+                sendColors();
             }
 
             updateImageLocation();
@@ -821,9 +824,26 @@ public class FlickrColorFeedback extends PApplet {
 
     }
 
+    void sendColors() {
+        if (true) {
+            for (int i = 0; i < dominantColors.size(); i++) {
+                ColorBucket colBucket = dominantColors.get(i);
+                OscMessage myOscMessage = new OscMessage("/color" + i);
+                /* add a value (an integer) to the OscMessage */
+                myOscMessage.add(red(colBucket.color));
+                myOscMessage.add(green(colBucket.color));
+                myOscMessage.add(blue(colBucket.color));
+                myOscMessage.add(colBucket.occurence);
+                oscp5.send(myOscMessage, peerAddress);
+                // println(colBucket.color);
+                // println(colBucket.occurence);
+            }
+        }
+    }
+
     void oscEvent(OscMessage theOscMessage) {
 
-        //theOscMessage.print();
+        // theOscMessage.print();
         /* check if the address pattern fits any of our patterns */
         if (theOscMessage.addrPattern().equals(myConnectPattern)) {
             connect(theOscMessage.netAddress().address());
@@ -838,20 +858,19 @@ public class FlickrColorFeedback extends PApplet {
             int colorIndex = NumberUtils.toInt(StringUtils.substringAfter(theOscMessage.addrPattern(), "/color"));
 
             // make sure not to receive more colors than used in the uery
-            if (colorIndex < NUM_COLORS_IN_QUERY)
-            {
+            if (colorIndex < NUM_COLORS_IN_QUERY) {
                 float red = theOscMessage.get(0).floatValue();
                 float green = theOscMessage.get(1).floatValue();
                 float blue = theOscMessage.get(2).floatValue();
-    
+
                 int color = color(red, green, blue);
-    
-                // make sure there are enough color buckets available to store the incoming color
-                while(coloursFromOsc.size() <= colorIndex)
-                {
+
+                // make sure there are enough color buckets available to store
+                // the incoming color
+                while (coloursFromOsc.size() <= colorIndex) {
                     coloursFromOsc.add(new ColorBucket(0));
                 }
-                
+
                 coloursFromOsc.set(colorIndex, new ColorBucket(color));
             }
         }
@@ -860,8 +879,8 @@ public class FlickrColorFeedback extends PApplet {
     }
 
     private void connect(String theIPaddress) {
-        if (!myNetAddressList.contains(theIPaddress, myBroadcastPort)) {
-            myNetAddressList.add(new NetAddress(theIPaddress, myBroadcastPort));
+        if (!myNetAddressList.contains(theIPaddress, peerListeningPort)) {
+            myNetAddressList.add(new NetAddress(theIPaddress, peerListeningPort));
             println("### adding " + theIPaddress + " to the list.");
         } else {
             println("### " + theIPaddress + " is already connected.");
@@ -870,8 +889,8 @@ public class FlickrColorFeedback extends PApplet {
     }
 
     private void disconnect(String theIPaddress) {
-        if (myNetAddressList.contains(theIPaddress, myBroadcastPort)) {
-            myNetAddressList.remove(theIPaddress, myBroadcastPort);
+        if (myNetAddressList.contains(theIPaddress, peerListeningPort)) {
+            myNetAddressList.remove(theIPaddress, peerListeningPort);
             println("### removing " + theIPaddress + " from the list.");
         } else {
             println("### " + theIPaddress + " is not connected.");
@@ -910,13 +929,19 @@ public class FlickrColorFeedback extends PApplet {
 
     private OscP5 oscp5;
     NetAddressList myNetAddressList = new NetAddressList();
+    /*
+     * a NetAddress contains the ip address and port number of a remote location
+     * in the network.
+     */
+    NetAddress peerAddress;
+
     /* listeningPort is the port the server is listening for incoming messages */
     int myListeningPort = 32000;
     /*
      * the broadcast port is the port the clients should listen for incoming
      * messages from the server
      */
-    int myBroadcastPort = 12000;
+    int peerListeningPort = 12000;
 
     String myConnectPattern = "/server/connect";
     String myDisconnectPattern = "/server/disconnect";
