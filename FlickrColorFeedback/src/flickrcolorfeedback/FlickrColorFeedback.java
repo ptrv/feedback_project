@@ -665,6 +665,8 @@ public class FlickrColorFeedback extends PApplet {
         collector = new ColorCollector(COLOR_BUCKET_RESOLUTION);
         collector.analyze(currentImage);
         dominantColors = collector.getDominantColors(NUM_COLORS_IN_QUERY, true);
+        
+        sendColors();
     }
 
     private void updateSearchColors() {
@@ -781,7 +783,6 @@ public class FlickrColorFeedback extends PApplet {
             currentPhoto = imageReplacingThread.getNewPhotoInfo();
             if (currentPhoto != null) {
                 loadNextImage(currentPhoto.getFile().getName());
-                sendColors();
             }
 
             updateImageLocation();
