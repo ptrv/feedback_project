@@ -53,9 +53,10 @@ import com.aetrion.flickr.tags.Tag;
 public class FlickrColorFeedback extends PApplet {
 
     private static boolean exportMovie = false;
+    private static boolean animateImageBounds = true;
 
     // 7 most similar colors + 1 that stands out
-    private static boolean START_WITH_EXISTING_IMAGE = false;
+    private static boolean START_WITH_EXISTING_IMAGE = true;
 
     private static final int NUM_COLORS_IN_QUERY = 8;
     private static final int COLOR_BUCKET_RESOLUTION = 12;
@@ -691,6 +692,17 @@ public class FlickrColorFeedback extends PApplet {
         noStroke();
         rectMode(CORNER);
 
+        if (animateImageBounds) {
+            float horizCenter = width / 2.f;
+            float vertCener = height / 2.f;
+
+            float fadeFactor = 0.999f;
+            imgLeft = fadeFactor * imgLeft + (1.f - fadeFactor) * horizCenter;
+            imgRight = fadeFactor * imgRight + (1.f - fadeFactor) * horizCenter;
+            imgTop = fadeFactor * imgTop + (1.f - fadeFactor) * vertCener;
+            imgBottom = fadeFactor * imgBottom + (1.f - fadeFactor) * vertCener;
+        }
+
         List<ColorBucket> coloursToDisplay = searchColours;
 
         if (coloursToDisplay != null && coloursToDisplay.size() == 4) {
@@ -713,25 +725,25 @@ public class FlickrColorFeedback extends PApplet {
             rect(0, 0, imgLeft, imgTop);
 
             fill(coloursToDisplay.get(1).color);
-            rect(imgLeft, 0, currentImage.width, imgTop);
+            rect(imgLeft, 0, imgRight - imgLeft, imgTop);
 
             fill(coloursToDisplay.get(2).color);
             rect(imgRight, 0, width - imgRight, imgTop);
 
             fill(coloursToDisplay.get(3).color);
-            rect(imgRight, imgTop, width - imgRight, currentImage.height);
+            rect(imgRight, imgTop, width - imgRight, imgBottom - imgTop);
 
             fill(coloursToDisplay.get(4).color);
             rect(imgRight, imgBottom, width - imgRight, height - imgBottom);
 
             fill(coloursToDisplay.get(5).color);
-            rect(imgLeft, imgBottom, currentImage.width, height - imgBottom);
+            rect(imgLeft, imgBottom, imgRight - imgLeft, height - imgBottom);
 
             fill(coloursToDisplay.get(6).color);
             rect(0, imgBottom, imgLeft, height - imgBottom);
 
             fill(coloursToDisplay.get(7).color);
-            rect(0, imgTop, imgLeft, currentImage.height);
+            rect(0, imgTop, imgLeft, imgBottom - imgTop);
 
         } else if (coloursToDisplay != null) {
 
@@ -751,14 +763,14 @@ public class FlickrColorFeedback extends PApplet {
         }
 
         // draw optional border
-        int border = 0;
+        int border = 3;
         if (border > 0) {
-            fill(color(0.f));
+            fill(color(255.f));
             rectMode(CORNERS);
-            rect(imgLeft, imgTop, imgRight, imgTop + border);
-            rect(imgLeft, imgTop, imgLeft + border, imgBottom);
-            rect(imgLeft, imgBottom - border, imgRight, imgBottom);
-            rect(imgRight - border, imgTop, imgRight, imgBottom);
+            rect(imgLeft, imgTop - 1, imgRight, imgTop + border - 1);
+            rect(imgLeft - 1, imgTop, imgLeft + border - 1, imgBottom);
+            rect(imgLeft+1, imgBottom - border+1, imgRight+1, imgBottom+1);
+            rect(imgRight - border + 1, imgTop, imgRight + 1, imgBottom);
         }
 
         if (currentPhoto != null && currentPhoto.hasMetadata()) {
