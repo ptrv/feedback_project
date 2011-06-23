@@ -605,7 +605,7 @@ public class FlickrColorFeedback extends PApplet {
         System.out.println("FlickColorFeedback.setup() was called.");
         oscp5 = new OscP5(this, myListeningPort);
 
-        peerAddress = new NetAddress("127.0.0.1", peerListeningPort);
+        peerAddress = new NetAddress("192.168.0.33", peerListeningPort);
 
         coloursFromOsc = new ArrayList<ColorBucket>();
 
@@ -713,7 +713,19 @@ public class FlickrColorFeedback extends PApplet {
             imgBottom = fadeFactor * imgBottom + (1.f - fadeFactor) * vertCener;
         }
 
-        List<ColorBucket> coloursToDisplay = searchColours;
+        List<ColorBucket> coloursToDisplay = new ArrayList<ColorBucket>();
+        for (int i=0; i<dominantColors.size(); i++)
+        {
+            if (!coloursFromOsc.isEmpty())
+            {
+                coloursToDisplay.add(coloursFromOsc.get(i % coloursFromOsc.size()));
+            }
+            else
+            {
+                coloursToDisplay.add(new ColorBucket(0));
+            }
+            coloursToDisplay.add(dominantColors.get(i));
+        }
 
         if (coloursToDisplay != null && coloursToDisplay.size() == 4) {
 
@@ -860,7 +872,7 @@ public class FlickrColorFeedback extends PApplet {
 
     void oscEvent(OscMessage theOscMessage) {
 
-        // theOscMessage.print();
+        theOscMessage.print();
         /* check if the address pattern fits any of our patterns */
         if (theOscMessage.addrPattern().equals(myConnectPattern)) {
             connect(theOscMessage.netAddress().address());
