@@ -589,9 +589,9 @@ public class FlickrColorFeedback extends PApplet {
             updateSearchColors();
             sendColors();
         }
-        
+
         PImage incomingImage;
-        
+
         boolean threadShouldExit;
         Boolean newImageAvailable;
 
@@ -676,12 +676,14 @@ public class FlickrColorFeedback extends PApplet {
         imageReplacingThread.start();
     }
 
-
     private void updateSearchColors() {
 
         synchronized (this) {
             searchColours = new ArrayList<ColorBucket>();
-            for (int i = 0; i < dominantColors.size() - coloursFromOsc.size(); i++) {
+
+            int numColorsFromImage = min(4, 5 - coloursFromOsc.size());
+
+            for (int i = 0; i < numColorsFromImage; i++) {
                 searchColours.add(dominantColors.get(i));
             }
             for (int i = 0; i < coloursFromOsc.size(); i++) {
@@ -714,14 +716,10 @@ public class FlickrColorFeedback extends PApplet {
         }
 
         List<ColorBucket> coloursToDisplay = new ArrayList<ColorBucket>();
-        for (int i=0; i<dominantColors.size(); i++)
-        {
-            if (!coloursFromOsc.isEmpty())
-            {
+        for (int i = 0; i < dominantColors.size(); i++) {
+            if (!coloursFromOsc.isEmpty()) {
                 coloursToDisplay.add(coloursFromOsc.get(i % coloursFromOsc.size()));
-            }
-            else
-            {
+            } else {
                 coloursToDisplay.add(new ColorBucket(0));
             }
             coloursToDisplay.add(dominantColors.get(i));
