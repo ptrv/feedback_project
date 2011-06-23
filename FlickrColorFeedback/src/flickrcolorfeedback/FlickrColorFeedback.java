@@ -26,6 +26,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import netP5.NetAddress;
 import netP5.NetAddressList;
+import netscape.javascript.JSObject;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -56,31 +57,31 @@ public class FlickrColorFeedback extends PApplet {
     private static boolean animateImageBounds = true;
 
     // 7 most similar colors + 1 that stands out
-    private static boolean START_WITH_EXISTING_IMAGE = true;
-
-    private static final int NUM_COLORS_IN_QUERY = 8;
-    private static final int COLOR_BUCKET_RESOLUTION = 12;
-    private static final int MIN_COLOR_DISTANCE = 20;
-    private static final int MIN_COLOR_DISTANCE_LAST = 80;
-
-    private static final int MIN_SATURATION = 0;
-    private static final int MAX_SATURATION = 250;
-    private static final int MIN_BRIGHTNESS = 50;
-
-    private static final int COLOR_FUZZINESS_KERNEL_SIZE = 3;
-
-    // 4 different colors
-    // private static boolean START_WITH_EXISTING_IMAGE = false;
-    // private static final int NUM_COLORS_IN_QUERY = 4;
-    // private static final int COLOR_BUCKET_RESOLUTION = 15;
-    // private static final int MIN_COLOR_DISTANCE = 40;
-    // private static final int MIN_COLOR_DISTANCE_LAST = 70;
+    // private static boolean START_WITH_EXISTING_IMAGE = true;
+    //
+    // private static final int NUM_COLORS_IN_QUERY = 8;
+    // private static final int COLOR_BUCKET_RESOLUTION = 12;
+    // private static final int MIN_COLOR_DISTANCE = 20;
+    // private static final int MIN_COLOR_DISTANCE_LAST = 80;
     //
     // private static final int MIN_SATURATION = 0;
-    // private static final int MAX_SATURATION = 240;
-    // private static final int MIN_BRIGHTNESS = 80;
+    // private static final int MAX_SATURATION = 250;
+    // private static final int MIN_BRIGHTNESS = 50;
     //
     // private static final int COLOR_FUZZINESS_KERNEL_SIZE = 3;
+
+    // 4 different colors
+    private static boolean START_WITH_EXISTING_IMAGE = false;
+    private static final int NUM_COLORS_IN_QUERY = 4;
+    private static final int COLOR_BUCKET_RESOLUTION = 15;
+    private static final int MIN_COLOR_DISTANCE = 10;
+    private static final int MIN_COLOR_DISTANCE_LAST = 100;
+
+    private static final int MIN_SATURATION = 0;
+    private static final int MAX_SATURATION = 240;
+    private static final int MIN_BRIGHTNESS = 80;
+
+    private static final int COLOR_FUZZINESS_KERNEL_SIZE = 3;
 
     // no restrictions
     // private static boolean START_WITH_EXISTING_IMAGE = false;
@@ -359,14 +360,17 @@ public class FlickrColorFeedback extends PApplet {
 
             List<String> idList = new ArrayList<String>();
 
+            String weightString = StringUtils.substring(Float.toString(1.f / colors.size()), 3);
+
             StringBuilder colorCodes = new StringBuilder();
+            int colorIndex = 0;
             Iterator<ColorBucket> it = colors.iterator();
             while (it.hasNext()) {
-                if (colorCodes.length() != 0) {
-                    colorCodes.append("%2C");
-                }
+                colorCodes.append("&colors[" + colorIndex + "]=");
                 String hexValue = hex(it.next().color).substring(2);
                 colorCodes.append(hexValue);
+                colorCodes.append("&weights[" + colorIndex + "]=" + weightString);
+                colorIndex++;
             }
 
             try {
@@ -383,8 +387,8 @@ public class FlickrColorFeedback extends PApplet {
 
                 System.out.println("found " + results.size() + " similar images");
                 for (int i = 0; i < results.size(); i++) {
-                    JSONArray result = (JSONArray) results.get(i);
-                    idList.add((String) result.get(0));
+                    JSONObject result = (JSONObject) results.get(i);
+                    idList.add((String) result.get("id"));
                 }
 
                 return idList;
@@ -396,9 +400,10 @@ public class FlickrColorFeedback extends PApplet {
                 e.printStackTrace();
                 return idList;
             }
+
         }
 
-        private String baseUrl = "http://labs.ideeinc.com/coloursearch/services/rest/?method=color.search&quantity=20&page=0&imageset=flickr&colors=";
+        private String baseUrl = "http://labs.ideeinc.com/rest/?method=flickr_color_search&limit=51&offset=0";
     }
 
     class FlickrPhotoInfo {
@@ -546,8 +551,6 @@ public class FlickrColorFeedback extends PApplet {
 
         private FlickrPhotoInfo downloadSimilarImage() throws ParseException {
 
-            updateSearchColors();
-
             List<String> idList = flickrColorSearch.findImages(searchColours);
             FlickrPhotoInfo info = null;
             for (int i = 0; i < idList.size(); i++) {
@@ -556,6 +559,7 @@ public class FlickrColorFeedback extends PApplet {
                     info = flickrDownloader.downloadPhoto(idList.get(i));
                     if (info != null) {
                         shownPhotoIds.add(id);
+                        loadNextImage(info.getId());
                         return info;
                     }
                 }
@@ -568,11 +572,26 @@ public class FlickrColorFeedback extends PApplet {
             return newImageAvailable;
         }
 
-        FlickrPhotoInfo getNewPhotoInfo() {
+        PImage getIncomingImage() {
             newImageAvailable = false;
-            return newPhotoInfo;
+            return incomingImage;
         }
 
+        private void loadNextImage(String id) {
+
+            // Load an image from the data directory
+            incomingImage = loadImage(imageDataDir.getName() + "/" + id + ".jpg");
+
+            collector = new ColorCollector(COLOR_BUCKET_RESOLUTION);
+            collector.analyze(incomingImage);
+            dominantColors = collector.getDominantColors(NUM_COLORS_IN_QUERY, true);
+
+            updateSearchColors();
+            sendColors();
+        }
+        
+        PImage incomingImage;
+        
         boolean threadShouldExit;
         Boolean newImageAvailable;
 
@@ -617,7 +636,7 @@ public class FlickrColorFeedback extends PApplet {
                 }
             });
 
-            loadNextImage(imgFileNames[0]);
+            imageReplacingThread.loadNextImage(StringUtils.substringBefore(imgFileNames[0], "."));
         } else {
             // start with random colors
             dominantColors = new ArrayList<ColorBucket>();
@@ -657,17 +676,6 @@ public class FlickrColorFeedback extends PApplet {
         imageReplacingThread.start();
     }
 
-    private void loadNextImage(String fileName) {
-
-        // Load an image from the data directory
-        currentImage = loadImage(imageDataDir.getName() + "/" + fileName);
-
-        collector = new ColorCollector(COLOR_BUCKET_RESOLUTION);
-        collector.analyze(currentImage);
-        dominantColors = collector.getDominantColors(NUM_COLORS_IN_QUERY, true);
-        
-        sendColors();
-    }
 
     private void updateSearchColors() {
 
@@ -710,16 +718,16 @@ public class FlickrColorFeedback extends PApplet {
         if (coloursToDisplay != null && coloursToDisplay.size() == 4) {
 
             fill(coloursToDisplay.get(0).color);
-            rect(imgLeft, 0, currentImage.width, imgTop);
+            rect(imgLeft, 0, imgRight - imgLeft, imgTop);
 
             fill(coloursToDisplay.get(1).color);
-            rect(imgRight, imgTop, width - imgRight, currentImage.height);
+            rect(imgRight, imgTop, width - imgRight, imgBottom - imgTop);
 
             fill(coloursToDisplay.get(2).color);
-            rect(imgLeft, imgBottom, currentImage.width, height - imgBottom);
+            rect(imgLeft, imgBottom, imgRight - imgLeft, height - imgBottom);
 
             fill(coloursToDisplay.get(3).color);
-            rect(0, imgTop, imgLeft, currentImage.height);
+            rect(0, imgTop, imgLeft, imgBottom - imgTop);
 
         } else if (coloursToDisplay != null && coloursToDisplay.size() == 8) {
 
@@ -771,7 +779,7 @@ public class FlickrColorFeedback extends PApplet {
             rectMode(CORNERS);
             rect(imgLeft, imgTop - 1, imgRight, imgTop + border - 1);
             rect(imgLeft - 1, imgTop, imgLeft + border - 1, imgBottom);
-            rect(imgLeft+1, imgBottom - border+1, imgRight+1, imgBottom+1);
+            rect(imgLeft + 1, imgBottom - border + 1, imgRight + 1, imgBottom + 1);
             rect(imgRight - border + 1, imgTop, imgRight + 1, imgBottom);
         }
 
@@ -780,11 +788,7 @@ public class FlickrColorFeedback extends PApplet {
         }
 
         if (imageReplacingThread.isNewImageAvailable()) {
-            currentPhoto = imageReplacingThread.getNewPhotoInfo();
-            if (currentPhoto != null) {
-                loadNextImage(currentPhoto.getFile().getName());
-            }
-
+            currentImage = imageReplacingThread.getIncomingImage();
             updateImageLocation();
         }
 
