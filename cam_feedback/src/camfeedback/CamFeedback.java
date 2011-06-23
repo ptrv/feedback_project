@@ -288,7 +288,7 @@ public class CamFeedback extends PApplet {
 	PImage img, screenCap;
 	float deg=1;
 	int level=0;
-	int levelMax=3;
+	int levelMax=1;
 
 	OscP5 oscP5;
 
@@ -299,6 +299,12 @@ public class CamFeedback extends PApplet {
 
 	ColorCollector colorCollector;
 	private List<ColorBucket> dominantColors;
+	
+	private List<ColorBucket> listFromFlickr;
+	
+	private ColorBucket colorFromOsc;
+	
+	private static final int MAX_RECURSION_LEVEL = 6;
 
 	private float lastTime;
 
@@ -306,12 +312,16 @@ public class CamFeedback extends PApplet {
 
 	private boolean sendOsc = false;
 	
+	int oscRecursion = 1;
 	public void setup() {
 		size(500, 500, P3D);
 		//  size(850, 850, P3D);
 		frameRate(30);
 		// img=loadImage("merce.png");
 
+		listFromFlickr = new ArrayList<ColorBucket>();
+		colorFromOsc = new ColorBucket(color(255,255,255));
+		fillListFromFlickr();
 		oscP5 = new OscP5(this,12000);
 		myBroadcastLocation = new NetAddress("127.0.0.1",32000);
 
@@ -319,11 +329,27 @@ public class CamFeedback extends PApplet {
 		cam = new Capture(this, 320, 240);
 
 	}
+	private void fillListFromFlickr() {
+		listFromFlickr.clear();
+		for (int i = 0; i < MAX_RECURSION_LEVEL; i++) {
+			
+			ColorBucket cb = new ColorBucket(color(random(255),
+					random(255), random(255)));
+			listFromFlickr.add(cb);
+		}
+	}
 	private void drawRecursive(int level)
 	{
 		screenCap=get(0, 0, width, height); 
+		
+//		ColorBucket cb = listFromFlickr.get(level);
+//		int red = (int) red(cb.color);
+//		int green = (int) green(cb.color);
+//		int blue = (int) blue(cb.color);
+//		tint(red, green, blue, 200);
 
-		tint(255, 255, 255, 200);
+		
+		tint(255,255,255,200);
 		//rotateX(radians(deg));
 		pushMatrix();
 		translate(width/4, height/4);
@@ -373,13 +399,18 @@ public class CamFeedback extends PApplet {
 			translate(width/2, height/2);
 			rotate(radians(deg));
 			translate(-width/2, -height/2);
-			// tint(255,255,255,200);
+			
+			
+//			tint(red(colorFromOsc.color),
+//					green(colorFromOsc.color),
+//					blue(colorFromOsc.color)
+//					,200);
 			// image(img, 0, 0, width, height);
 			image(cam, 0, 0, width, height);
 
 			// scale(levelMax);
-			//		    drawRecursive(levelMax);
-			
+			drawRecursive(levelMax);
+
 			
 			if(timeSum > 5000 && sendOsc){
 				screenCap = get(0, 0, width, height);
@@ -390,8 +421,12 @@ public class CamFeedback extends PApplet {
 			mouseX=constrain(mouseX, 0, width);        // values for mouseX between 0 and window width
 			mouseY=constrain(mouseY, 0, height);       // values for mouseY between 0 and window height
 
-			deg+=(-5.0 + 2* (float)mouseX/(float)width * 5.0);      // degrees -5 or plus 5
-			levelMax=floor(6* (float)mouseY/(float)height);  // values between 0 and
+//			deg+=(-5.0 + 2* (float)mouseX/(float)width * 5.0);      // degrees -5 or plus 5
+			deg+=(-5.0 + 2* (float)green(colorFromOsc.color)/200.0f * 5.0);
+//			levelMax=floor(MAX_RECURSION_LEVEL * (float)mouseY/(float)height);  // values between 0 and
+			levelMax=floor(MAX_RECURSION_LEVEL * (float)oscRecursion/200.0f);  // values between 0 and
+//			println(oscRecursion);
+			
 		}
 	}
 
@@ -420,13 +455,21 @@ public class CamFeedback extends PApplet {
 		println("### received an osc message with addrpattern "+theOscMessage.addrPattern()+" and typetag "+theOscMessage.typetag());
 		theOscMessage.print();
 //		theOscMessage.get(0).floatValue();
+		if (theOscMessage.addrPattern().equals("/color0")) {
+			int r = (int) theOscMessage.get(0).floatValue();
+			int g = (int) theOscMessage.get(1).floatValue();
+			int b = (int) theOscMessage.get(2).floatValue();
+		    colorFromOsc = new ColorBucket(color(r,g,b));
+		    println(r);
+		    oscRecursion = r;
+		}
 	}
 
 	void sendColors(PImage img){
 		if(true){
 			colorCollector = new ColorCollector(COLOR_BUCKET_RESOLUTION);
 			colorCollector.analyze(img);
-			dominantColors = colorCollector.getDominantColors(NUM_COLORS_IN_QUERY, false);
+			dominantColors = colorCollector.getDominantColors(1, false);
 
 			for (int i = 0; i < dominantColors.size(); i++) {
 				ColorBucket colBucket = dominantColors.get(i);
