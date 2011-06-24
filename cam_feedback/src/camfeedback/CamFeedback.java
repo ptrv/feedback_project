@@ -21,7 +21,7 @@ public class CamFeedback extends PApplet {
 
 	private static boolean START_WITH_EXISTING_IMAGE = false;
 
-	private static final int NUM_COLORS_IN_QUERY = 3;
+	private static final int NUM_COLORS_IN_QUERY = 6;
 	private static final int COLOR_BUCKET_RESOLUTION = 12;
 	private static final int MIN_COLOR_DISTANCE = 20;
 	private static final int MIN_COLOR_DISTANCE_LAST = 80;
@@ -323,9 +323,9 @@ public class CamFeedback extends PApplet {
 		colorFromOsc = new ColorBucket(color(255,255,255));
 		fillListFromFlickr();
 		oscP5 = new OscP5(this,12000);
-		myBroadcastLocation = new NetAddress("127.0.0.1",32000);
+//		myBroadcastLocation = new NetAddress("127.0.0.1",32000);
 
-//		myBroadcastLocation = new NetAddress("130.149.141.55",32000);
+		myBroadcastLocation = new NetAddress("130.149.141.55",32000);
 		cam = new Capture(this, 320, 240);
 
 	}
@@ -469,7 +469,7 @@ public class CamFeedback extends PApplet {
 		if(true){
 			colorCollector = new ColorCollector(COLOR_BUCKET_RESOLUTION);
 			colorCollector.analyze(img);
-			dominantColors = colorCollector.getDominantColors(1, false);
+			dominantColors = colorCollector.getDominantColors(NUM_COLORS_IN_QUERY, false);
 
 			for (int i = 0; i < dominantColors.size(); i++) {
 				ColorBucket colBucket = dominantColors.get(i);
