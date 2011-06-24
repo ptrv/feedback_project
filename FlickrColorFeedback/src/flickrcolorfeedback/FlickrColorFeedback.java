@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.SortedSet;
@@ -26,7 +27,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import netP5.NetAddress;
 import netP5.NetAddressList;
-import netscape.javascript.JSObject;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -38,7 +38,6 @@ import org.json.simple.parser.ParseException;
 
 import oscP5.OscMessage;
 import oscP5.OscP5;
-
 import processing.core.PApplet;
 import processing.core.PFont;
 import processing.core.PImage;
@@ -54,7 +53,7 @@ import com.aetrion.flickr.tags.Tag;
 public class FlickrColorFeedback extends PApplet {
 
     private static boolean exportMovie = false;
-    private static boolean animateImageBounds = true;
+    private static boolean animateImageBounds = false;
 
     // 7 most similar colors + 1 that stands out
     // private static boolean START_WITH_EXISTING_IMAGE = true;
@@ -605,7 +604,9 @@ public class FlickrColorFeedback extends PApplet {
         System.out.println("FlickColorFeedback.setup() was called.");
         oscp5 = new OscP5(this, myListeningPort);
 
-        peerAddress = new NetAddress("192.168.0.33", peerListeningPort);
+        peerAddresses = new LinkedList<NetAddress>();
+        peerAddresses.add( new NetAddress("130.149.141.58", 12000));
+        peerAddresses.add( new NetAddress("130.149.141.51", 57120));
 
         coloursFromOsc = new ArrayList<ColorBucket>();
 
@@ -794,7 +795,7 @@ public class FlickrColorFeedback extends PApplet {
         }
 
         if (currentPhoto != null && currentPhoto.hasMetadata()) {
-            // displayMetadata(left, top, right, bottom);
+             displayMetadata(imgLeft, imgTop, imgRight, imgBottom);
         }
 
         if (imageReplacingThread.isNewImageAvailable()) {
@@ -861,7 +862,10 @@ public class FlickrColorFeedback extends PApplet {
                 myOscMessage.add(green(colBucket.color));
                 myOscMessage.add(blue(colBucket.color));
                 myOscMessage.add(colBucket.occurence);
-                oscp5.send(myOscMessage, peerAddress);
+                for (NetAddress peerAddress : peerAddresses)
+                {
+                	oscp5.send(myOscMessage, peerAddress);
+                }
                 // println(colBucket.color);
                 // println(colBucket.occurence);
             }
@@ -886,7 +890,7 @@ public class FlickrColorFeedback extends PApplet {
 
             // make sure not to receive more colors than used in the uery
             if (colorIndex < NUM_COLORS_IN_QUERY) {
-                float red = theOscMessage.get(0).floatValue();
+            	float red = theOscMessage.get(0).floatValue();
                 float green = theOscMessage.get(1).floatValue();
                 float blue = theOscMessage.get(2).floatValue();
 
@@ -960,7 +964,7 @@ public class FlickrColorFeedback extends PApplet {
      * a NetAddress contains the ip address and port number of a remote location
      * in the network.
      */
-    NetAddress peerAddress;
+    List<NetAddress> peerAddresses;
 
     /* listeningPort is the port the server is listening for incoming messages */
     int myListeningPort = 32000;
