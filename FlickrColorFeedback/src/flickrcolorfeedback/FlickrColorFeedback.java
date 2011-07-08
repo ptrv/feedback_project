@@ -74,7 +74,7 @@ public class FlickrColorFeedback extends PApplet {
     private static final int NUM_COLORS_IN_QUERY = 4;
     private static final int COLOR_BUCKET_RESOLUTION = 15;
     private static final int MIN_COLOR_DISTANCE = 10;
-    private static final int MIN_COLOR_DISTANCE_LAST = 10;
+    private static final int MIN_COLOR_DISTANCE_LAST = 60;
 
     private static final int MIN_SATURATION = 0;
     private static final int MAX_SATURATION = 255;
@@ -918,7 +918,7 @@ public class FlickrColorFeedback extends PApplet {
             connect(theOscMessage.netAddress().address());
         } else if (theOscMessage.addrPattern().equals(myDisconnectPattern)) {
             disconnect(theOscMessage.netAddress().address());
-        } else if (theOscMessage.addrPattern().equals("/color0")) {
+        } else if (theOscMessage.addrPattern().equals("/iphonecolor")) {
         	float red = theOscMessage.get(0).floatValue();
             float green = theOscMessage.get(1).floatValue();
             float blue = theOscMessage.get(2).floatValue();
