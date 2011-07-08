@@ -574,15 +574,6 @@ public class FlickrColorFeedback extends PApplet {
         PImage getIncomingImage() {
             newImageAvailable = false;
             
-            
-            return incomingImage;
-        }
-
-        private void loadNextImage(String id) {
-
-            // Load an image from the data directory
-            incomingImage = loadImage(imageDataDir.getName() + "/" + id + ".jpg");
-
             if (useIPhoneColorInNextSearch)
             {
             	useIPhoneColorInNextSearch = false;
@@ -592,6 +583,14 @@ public class FlickrColorFeedback extends PApplet {
             	waitForIPhoneColorToAppearInPhoto = false;
             	colourFromIPhone = null;
             }
+            
+            return incomingImage;
+        }
+
+        private void loadNextImage(String id) {
+
+            // Load an image from the data directory
+            incomingImage = loadImage(imageDataDir.getName() + "/" + id + ".jpg");
             
             collector = new ColorCollector(COLOR_BUCKET_RESOLUTION);
             collector.analyze(incomingImage);
@@ -618,7 +617,7 @@ public class FlickrColorFeedback extends PApplet {
 
         peerAddresses = new LinkedList<NetAddress>();
         peerAddresses.add( new NetAddress("130.149.141.63", 12000));
-        //peerAddresses.add( new NetAddress("130.149.141.51", 57120));
+        peerAddresses.add( new NetAddress("130.149.141.40", 32000));
 
         coloursFromOsc = new ArrayList<ColorBucket>();
 
@@ -918,7 +917,7 @@ public class FlickrColorFeedback extends PApplet {
             connect(theOscMessage.netAddress().address());
         } else if (theOscMessage.addrPattern().equals(myDisconnectPattern)) {
             disconnect(theOscMessage.netAddress().address());
-        } else if (theOscMessage.addrPattern().equals("/iphonecolor")) {
+        } else if (theOscMessage.addrPattern().equals("/phonecolor")) {
         	float red = theOscMessage.get(0).floatValue();
             float green = theOscMessage.get(1).floatValue();
             float blue = theOscMessage.get(2).floatValue();
