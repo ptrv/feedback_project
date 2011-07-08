@@ -74,11 +74,11 @@ public class FlickrColorFeedback extends PApplet {
     private static final int NUM_COLORS_IN_QUERY = 4;
     private static final int COLOR_BUCKET_RESOLUTION = 15;
     private static final int MIN_COLOR_DISTANCE = 10;
-    private static final int MIN_COLOR_DISTANCE_LAST = 100;
+    private static final int MIN_COLOR_DISTANCE_LAST = 10;
 
     private static final int MIN_SATURATION = 0;
-    private static final int MAX_SATURATION = 240;
-    private static final int MIN_BRIGHTNESS = 80;
+    private static final int MAX_SATURATION = 255;
+    private static final int MIN_BRIGHTNESS = 0;
 
     private static final int COLOR_FUZZINESS_KERNEL_SIZE = 3;
 
@@ -573,6 +573,8 @@ public class FlickrColorFeedback extends PApplet {
 
         PImage getIncomingImage() {
             newImageAvailable = false;
+            
+            
             return incomingImage;
         }
 
@@ -581,6 +583,16 @@ public class FlickrColorFeedback extends PApplet {
             // Load an image from the data directory
             incomingImage = loadImage(imageDataDir.getName() + "/" + id + ".jpg");
 
+            if (useIPhoneColorInNextSearch)
+            {
+            	useIPhoneColorInNextSearch = false;
+            }
+            else if (waitForIPhoneColorToAppearInPhoto)
+            {
+            	waitForIPhoneColorToAppearInPhoto = false;
+            	colourFromIPhone = null;
+            }
+            
             collector = new ColorCollector(COLOR_BUCKET_RESOLUTION);
             collector.analyze(incomingImage);
             dominantColors = collector.getDominantColors(NUM_COLORS_IN_QUERY, true);
@@ -605,8 +617,8 @@ public class FlickrColorFeedback extends PApplet {
         oscp5 = new OscP5(this, myListeningPort);
 
         peerAddresses = new LinkedList<NetAddress>();
-        peerAddresses.add( new NetAddress("130.149.141.58", 12000));
-        peerAddresses.add( new NetAddress("130.149.141.51", 57120));
+        peerAddresses.add( new NetAddress("130.149.141.63", 12000));
+        //peerAddresses.add( new NetAddress("130.149.141.51", 57120));
 
         coloursFromOsc = new ArrayList<ColorBucket>();
 
@@ -679,20 +691,37 @@ public class FlickrColorFeedback extends PApplet {
 
     private void updateSearchColors() {
 
+    	if (waitForIPhoneColorToAppearInPhoto) return;
+    	
         synchronized (this) {
             searchColours = new ArrayList<ColorBucket>();
+            
+            if (colourFromIPhone != null)
+            {
+            	searchColours.add(colourFromIPhone);
+            	
+	            for (int i = 0; i < dominantColors.size(); i++) {
+	                searchColours.add(dominantColors.get(i));
+	            }
+	            
+	            waitForIPhoneColorToAppearInPhoto = true;
+	            useIPhoneColorInNextSearch = true;
 
-            int numColorsFromImage = min(4, 5 - coloursFromOsc.size());
-
-            for (int i = 0; i < numColorsFromImage; i++) {
-                searchColours.add(dominantColors.get(i));
             }
-            for (int i = 0; i < coloursFromOsc.size(); i++) {
-                searchColours.add(coloursFromOsc.get(i));
+            else
+            {
+	            int numColorsFromImage = min(4, 5 - coloursFromOsc.size());
+	
+	            for (int i = 0; i < numColorsFromImage; i++) {
+	                searchColours.add(dominantColors.get(i));
+	            }
+	            for (int i = 0; i < coloursFromOsc.size(); i++) {
+	                searchColours.add(coloursFromOsc.get(i));
+	            }
+	
+	            HueComparator hueComparator = new HueComparator();
+	            Collections.sort(searchColours, hueComparator);
             }
-
-            HueComparator hueComparator = new HueComparator();
-            Collections.sort(searchColours, hueComparator);
         }
     }
 
@@ -718,11 +747,20 @@ public class FlickrColorFeedback extends PApplet {
 
         List<ColorBucket> coloursToDisplay = new ArrayList<ColorBucket>();
         for (int i = 0; i < dominantColors.size(); i++) {
-            if (!coloursFromOsc.isEmpty()) {
-                coloursToDisplay.add(coloursFromOsc.get(i % coloursFromOsc.size()));
-            } else {
-                coloursToDisplay.add(new ColorBucket(0));
-            }
+        	
+        	if (colourFromIPhone != null)
+        	{
+        		coloursToDisplay.add(colourFromIPhone);
+        	}
+        	else
+        	{
+	            if (!coloursFromOsc.isEmpty()) {
+	                coloursToDisplay.add(coloursFromOsc.get(i % coloursFromOsc.size()));
+	            } else {
+	                coloursToDisplay.add(new ColorBucket(0));
+	            }
+        	}
+            
             coloursToDisplay.add(dominantColors.get(i));
         }
 
@@ -880,12 +918,19 @@ public class FlickrColorFeedback extends PApplet {
             connect(theOscMessage.netAddress().address());
         } else if (theOscMessage.addrPattern().equals(myDisconnectPattern)) {
             disconnect(theOscMessage.netAddress().address());
+        } else if (theOscMessage.addrPattern().equals("/color0")) {
+        	float red = theOscMessage.get(0).floatValue();
+            float green = theOscMessage.get(1).floatValue();
+            float blue = theOscMessage.get(2).floatValue();
+
+            int color = color(red, green, blue);
+            colourFromIPhone = new ColorBucket(color);
         }
         /**
          * if pattern matching was not successful, then broadcast the incoming
          * message to all addresses in the netAddresList.
          */
-        else {
+        else if (!waitForIPhoneColorToAppearInPhoto) {
             int colorIndex = NumberUtils.toInt(StringUtils.substringAfter(theOscMessage.addrPattern(), "/color"));
 
             // make sure not to receive more colors than used in the uery
@@ -957,6 +1002,10 @@ public class FlickrColorFeedback extends PApplet {
     private File cacheDataDir;
 
     private List<ColorBucket> coloursFromOsc;
+    private ColorBucket colourFromIPhone;
+    
+    private boolean useIPhoneColorInNextSearch;
+    private boolean waitForIPhoneColorToAppearInPhoto;
 
     private OscP5 oscp5;
     NetAddressList myNetAddressList = new NetAddressList();
