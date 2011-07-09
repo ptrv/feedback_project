@@ -432,9 +432,9 @@ public class CamFeedback extends PApplet {
 
 //			deg+=(-5.0 + 2* (float)mouseX/(float)width * 5.0);      // degrees -5 or plus 5
 //			deg+=(-5.0 + 2* (float)green(colorFromOsc.color)/200.0f * 5.0);
-			deg+=(-5.0 + 2* rotationFactor * 5.0);
+			deg+=(-5.0 + 2* rotationFactor/255 * 5.0);
 //			levelMax=floor(MAX_RECURSION_LEVEL * (float)mouseY/(float)height);  // values between 0 and
-			levelMax=floor((float) (MAX_RECURSION_LEVEL * oscRecursion));  // values between 0 and
+			levelMax=floor((float) (MAX_RECURSION_LEVEL * oscRecursion/255.0f));  // values between 0 and
 //			println(oscRecursion);
 			
 		}
@@ -471,11 +471,8 @@ public class CamFeedback extends PApplet {
 			int b = (int) theOscMessage.get(2).floatValue();
 		    colorFromOsc = new ColorBucket(color(r,g,b));
 		    
-		    double[] ycbcr = rgb2YCbCr(r, g, b);
-		    print(ycbcr[0]);
-		    print(ycbcr[1]);
-		    oscRecursion = ycbcr[0];
-		    rotationFactor = (ycbcr[1]+ycbcr[2])/2.0;
+		    oscRecursion = brightness(colorFromOsc.color);
+		    rotationFactor = saturation(colorFromOsc.color);
 		}
 	}
 
@@ -494,27 +491,13 @@ public class CamFeedback extends PApplet {
 				myOscMessage.add(blue(colBucket.color));
 				myOscMessage.add(colBucket.occurence);
 				oscP5.send(myOscMessage, myBroadcastLocation);
+//				println(brightness(colBucket.color));
+//				println(saturation(colBucket.color));
 			}
 		}
 
 	}
 	
-	/**
-     * Translates the picture's pixels from RGB to YCbCr
-     *
-     * @param r  int - the red part of each pixel
-     * @param g	 int - the green part of each pixel
-     * @param b  int - the blue part of each pixel
-     * @return   double[] - containing the Y, Cb and Cr parts of each pixel
-     */
-    private double[] rgb2YCbCr(int r, int g, int b) {
-    	double[] YCbCr = new double[3];
-    	YCbCr[0] = 0.299 * r + 0.587 * g + 0.114 * b;
-    	YCbCr[1] = 128 + (-0.168736 * r - 0.331264 * g + 0.5 * b);
-    	YCbCr[2] = 128 + (0.5 * r - 0.418688 * g - 0.081312 * b);
-		return YCbCr;
-    }
-
 	public static void main(String _args[]) {
 		PApplet.main(new String[] { "--present", camfeedback.CamFeedback.class.getName() });
 //		PApplet.main(new String[] { camfeedback.CamFeedback.class.getName() });
